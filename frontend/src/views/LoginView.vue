@@ -40,6 +40,7 @@ import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { login } from "../services/api";
 
+const emit = defineEmits(["auth-changed"]);
 const router = useRouter();
 
 const username = ref("admin");
@@ -52,6 +53,7 @@ async function doLogin() {
   loading.value = true;
   try {
     await login(username.value, password.value);
+    emit("auth-changed");
     router.push("/announcements");
   } catch {
     error.value = "Login failed. Check username/password.";
@@ -60,3 +62,4 @@ async function doLogin() {
   }
 }
 </script>
+
