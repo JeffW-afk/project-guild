@@ -97,3 +97,19 @@ export async function logout() {
   if (!res.ok) throw new Error("Logout failed");
   return await res.json();
 }
+
+export async function updateProfile({ username, currentPassword, newPassword }) {
+  const res = await fetch("/api/auth/profile", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ username, currentPassword, newPassword }),
+  });
+
+  if (!res.ok) {
+    const msg = await res.json().catch(() => ({}));
+    throw new Error(msg.error || "Update failed");
+  }
+
+  return await res.json();
+}

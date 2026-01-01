@@ -81,6 +81,13 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+function requireLogin(req, res, next) {
+  if (!req.session?.user) {
+    return res.status(401).json({ error: "Not logged in" });
+  }
+  next();
+}
+
 // --- Auth routes ---
 app.post("/api/auth/login", async (req, res) => {
   const { username, password } = req.body ?? {};
@@ -110,6 +117,68 @@ app.post("/api/auth/logout", (req, res) => {
   req.session.destroy(() => {
     res.json({ ok: true });
   });
+});
+
+// Update own profile: username and/or password
+app.patch("/api/auth/profile", requireLogin, async (req, res) => {
+  try {
+    const { username, currentPassword, newPassword } = req.body ?? {};
+
+    // Require current password for any sensitive change
+    if (!currentPassword) {
+      return res.status(400).json({ error: "currentPassword is required" });
+    }
+
+    const userId = req.session.user.id;
+
+    const user = await db.get(
+      "SELECT id, username, password_hash, role FROM users WHERE id = ?",
+      userId
+    );
+
+    if (!user) return res.status(401).json({ error: "Not logged in" });
+
+    const ok = await bcrypt.compare(String(currentPassword), user.password_hash);
+    if (!ok) return res.status(401).json({ error: "Wrong password" });
+
+    // Change username (optional)
+    if (typeof username === "string") {
+      const newName = username.trim();
+
+      if (newName.length < 3) {
+        return res.status(400).json({ error: "Username must be at least 3 characters" });
+      }
+
+      if (newName !== user.username) {
+        const taken = await db.get(
+          "SELECT id FROM users WHERE username = ?",
+          newName
+        );
+        if (taken) return res.status(409).json({ error: "Username already taken" });
+
+        await db.run("UPDATE users SET username = ? WHERE id = ?", newName, userId);
+        req.session.user.username = newName; // update session instantly
+      }
+    }
+
+    // Change password (optional)
+    if (typeof newPassword === "string" && newPassword.length > 0) {
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      }
+
+      const hash = await bcrypt.hash(String(newPassword), 12);
+      await db.run("UPDATE users SET password_hash = ? WHERE id = ?", hash, userId);
+    }
+
+    res.json({
+      id: req.session.user.id,
+      username: req.session.user.username,
+      role: req.session.user.role,
+    });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to update profile" });
+  }
 });
 
 // --- Announcements routes ---
