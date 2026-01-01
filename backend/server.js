@@ -246,6 +246,26 @@ app.post("/api/announcements", requireAdmin, async (req, res) => {
   }
 });
 
+// Delete announcement (admin only)
+app.delete("/api/announcements/:id", requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+
+    const result = await db.run("DELETE FROM announcements WHERE id = ?", id);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "Announcement not found" });
+    }
+
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to delete announcement" });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 
 (async () => {

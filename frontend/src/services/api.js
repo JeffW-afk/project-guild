@@ -72,6 +72,20 @@ export async function createAnnouncement(input) {
   return await res.json();
 }
 
+export async function deleteAnnouncement(id) {
+  const res = await fetch(`/api/announcements/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    const msg = await res.json().catch(() => ({}));
+    throw new Error(msg.error || "Delete failed");
+  }
+
+  return await res.json();
+}
+
 export async function authMe() {
   const res = await fetch("/api/auth/me", { credentials: "include" });
   if (!res.ok) throw new Error("Failed auth/me");
