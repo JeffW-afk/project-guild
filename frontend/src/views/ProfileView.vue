@@ -12,7 +12,7 @@
       </v-alert>
 
       <div v-if="user" class="mb-4 text-body-2 text-medium-emphasis">
-        Logged in as <b>{{ user.username }}</b> ({{ user.role }})
+        Logged in as <b>{{ user.username }}</b> ({{ user.guild_rank }})
       </div>
 
       <v-text-field

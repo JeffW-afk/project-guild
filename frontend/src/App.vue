@@ -8,7 +8,7 @@
       <v-spacer />
 
       <v-chip v-if="user" size="small" variant="tonal" class="mr-3">
-        {{ user.username }} • {{ user.role }}
+        {{ user.username }} • {{ user.guild_rank }}
       </v-chip>
 
       <v-btn v-if="!user" variant="text" to="/login">Login</v-btn>

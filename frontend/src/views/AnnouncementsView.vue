@@ -106,7 +106,9 @@ const dialog = ref(false);
 const posting = ref(false);
 const draft = ref({ title: "", body: "", tag: "General" });
 
-const canPost = computed(() => user.value?.role === "admin");
+const canPost = computed(() =>
+  ["admin", "guild_master", "founder"].includes(user.value?.guild_rank)
+);
 
 async function load() {
   error.value = "";

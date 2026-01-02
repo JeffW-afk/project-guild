@@ -34,7 +34,8 @@ async function initDb() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
-      role TEXT NOT NULL
+      role TEXT NOT NULL DEFAULT 'member',
+      guild_rank TEXT NOT NULL DEFAULT 'member'
     );
 
     CREATE TABLE IF NOT EXISTS announcements (
@@ -57,6 +58,21 @@ async function initDb() {
     );
   `);
 
+  async function ensureColumn(table, column, ddl) {
+    const cols = await db.all(`PRAGMA table_info(${table})`);
+    const exists = cols.some((c) => c.name === column);
+    if (!exists) {
+      await db.exec(ddl);
+    }
+  }
+
+  // For older DBs that don't have guild_rank yet
+  await ensureColumn(
+    "users",
+    "guild_rank",
+    "ALTER TABLE users ADD COLUMN guild_rank TEXT NOT NULL DEFAULT 'member'"
+  );
+
   // Seed admin if missing
   const existingAdmin = await db.get(
     `SELECT id FROM users WHERE username = ? LIMIT 1`,
@@ -68,9 +84,11 @@ async function initDb() {
     const hash = await bcrypt.hash(adminPass, 12);
 
     await db.run(
-      `INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)`,
+      `INSERT INTO users (username, password_hash, role, guild_rank)
+       VALUES (?, ?, ?, ?)`,
       "admin",
       hash,
+      "admin",
       "admin"
     );
 
@@ -81,12 +99,28 @@ async function initDb() {
         : "Admin password is default 'admin123' (change this!)."
     );
   }
+
+  // Make Nex founder (your account)
+  await db.run(
+    "UPDATE users SET guild_rank = ? WHERE username = ?",
+    "founder",
+    "Nex"
+  );
 }
 
 // --- Auth helpers ---
 function requireAdmin(req, res, next) {
-  if (req.session?.user?.role !== "admin") {
+  const rank = req.session?.user?.guild_rank;
+  if (!rank || !["admin", "guild_master", "founder"].includes(rank)) {
     return res.status(401).json({ error: "Not authorized" });
+  }
+  next();
+}
+
+function requireFounder(req, res, next) {
+  const rank = req.session?.user?.guild_rank;
+  if (rank !== "founder") {
+    return res.status(401).json({ error: "Founder only" });
   }
   next();
 }
@@ -106,7 +140,7 @@ app.post("/api/auth/login", async (req, res) => {
   }
 
   const user = await db.get(
-    `SELECT id, username, password_hash, role FROM users WHERE username = ?`,
+    `SELECT id, username, password_hash, guild_rank FROM users WHERE username = ?`,
     String(username)
   );
 
@@ -115,8 +149,18 @@ app.post("/api/auth/login", async (req, res) => {
   const ok = await bcrypt.compare(String(password), user.password_hash);
   if (!ok) return res.status(401).json({ error: "Invalid login" });
 
-  req.session.user = { id: user.id, username: user.username, role: user.role };
-  res.json({ id: user.id, username: user.username, role: user.role });
+  req.session.user = {
+    id: user.id,
+    username: user.username,
+    guild_rank: user.guild_rank,
+  };
+
+  res.json({
+    id: req.session.user.id,
+    username: req.session.user.username,
+    guild_rank: req.session.user.guild_rank,
+  });
+
 });
 
 app.get("/api/auth/me", (req, res) => {
@@ -213,7 +257,7 @@ app.patch("/api/auth/profile", requireLogin, async (req, res) => {
     const userId = req.session.user.id;
 
     const user = await db.get(
-      "SELECT id, username, password_hash, role FROM users WHERE id = ?",
+      "SELECT id, username, password_hash, guild_rank FROM users WHERE id = ?",
       userId
     );
 
@@ -255,7 +299,7 @@ app.patch("/api/auth/profile", requireLogin, async (req, res) => {
     res.json({
       id: req.session.user.id,
       username: req.session.user.username,
-      role: req.session.user.role,
+      guild_rank: req.session.user.guild_rank,
     });
   } catch (e) {
     res.status(500).json({ error: "Failed to update profile" });
