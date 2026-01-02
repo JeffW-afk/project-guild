@@ -127,3 +127,29 @@ export async function updateProfile({ username, currentPassword, newPassword }) 
 
   return await res.json();
 }
+
+export async function requestPasswordReset(username) {
+  const res = await fetch("/api/auth/forgot", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username }),
+  });
+  if (!res.ok) {
+    const msg = await res.json().catch(() => ({}));
+    throw new Error(msg.error || "Failed to request reset");
+  }
+  return await res.json();
+}
+
+export async function resetPassword({ username, code, newPassword }) {
+  const res = await fetch("/api/auth/reset", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, code, newPassword }),
+  });
+  if (!res.ok) {
+    const msg = await res.json().catch(() => ({}));
+    throw new Error(msg.error || "Reset failed");
+  }
+  return await res.json();
+}

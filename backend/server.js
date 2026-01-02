@@ -45,6 +45,16 @@ async function initDb() {
       author TEXT NOT NULL DEFAULT 'You',
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      code_hash TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      used INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    );
   `);
 
   // Seed admin if missing
@@ -117,6 +127,77 @@ app.post("/api/auth/logout", (req, res) => {
   req.session.destroy(() => {
     res.json({ ok: true });
   });
+});
+
+app.post("/api/auth/forgot", async (req, res) => {
+  try {
+    const { username } = req.body ?? {};
+    if (!username || String(username).trim().length < 1) {
+      return res.status(400).json({ error: "username is required" });
+    }
+
+    const user = await db.get("SELECT id, username FROM users WHERE username = ?", String(username).trim());
+    // Always return ok (don’t reveal if user exists)
+    if (!user) return res.json({ ok: true });
+
+    // 6-digit code
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const codeHash = await bcrypt.hash(code, 10);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+    await db.run(
+      "INSERT INTO password_resets (user_id, code_hash, expires_at, used) VALUES (?, ?, ?, 0)",
+      user.id,
+      codeHash,
+      expiresAt
+    );
+
+    console.log(`[Password reset] user=${user.username} code=${code} (expires in 10 min)`);
+
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to request reset" });
+  }
+});
+
+app.post("/api/auth/reset", async (req, res) => {
+  try {
+    const { username, code, newPassword } = req.body ?? {};
+
+    if (!username || !code || !newPassword) {
+      return res.status(400).json({ error: "username, code, newPassword are required" });
+    }
+    if (String(newPassword).length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters" });
+    }
+
+    const user = await db.get("SELECT id, username FROM users WHERE username = ?", String(username).trim());
+    if (!user) return res.status(401).json({ error: "Invalid reset" });
+
+    const reset = await db.get(
+      `SELECT * FROM password_resets
+       WHERE user_id = ? AND used = 0
+       ORDER BY id DESC
+       LIMIT 1`,
+      user.id
+    );
+
+    if (!reset) return res.status(401).json({ error: "Invalid reset" });
+
+    const expired = new Date(reset.expires_at).getTime() < Date.now();
+    if (expired) return res.status(401).json({ error: "Reset code expired" });
+
+    const ok = await bcrypt.compare(String(code), reset.code_hash);
+    if (!ok) return res.status(401).json({ error: "Invalid reset" });
+
+    const hash = await bcrypt.hash(String(newPassword), 12);
+    await db.run("UPDATE users SET password_hash = ? WHERE id = ?", hash, user.id);
+    await db.run("UPDATE password_resets SET used = 1 WHERE id = ?", reset.id);
+
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to reset password" });
+  }
 });
 
 // Update own profile: username and/or password
