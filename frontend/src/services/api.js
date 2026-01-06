@@ -153,3 +153,146 @@ export async function resetPassword({ username, code, newPassword }) {
   }
   return await res.json();
 }
+
+// ---------------------------
+// Parties
+// ---------------------------
+
+export async function listParties() {
+  const res = await fetch("/api/parties", { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to load parties");
+  return await res.json();
+}
+
+export async function getMyParty() {
+  const res = await fetch("/api/parties/me", { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to load your party");
+  return await res.json(); // { party: ... or null }
+}
+
+export async function getMyPartyRequest() {
+  const res = await fetch("/api/parties/requests/me", { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to load your party request");
+  return await res.json(); // { request: ... or null }
+}
+
+export async function requestPartyCreation({ party_name, message }) {
+  const res = await fetch("/api/parties/requests", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ party_name, message }),
+  });
+
+  if (!res.ok) {
+    const msg = await res.json().catch(() => ({}));
+    throw new Error(msg.error || "Failed to create request");
+  }
+
+  return await res.json();
+}
+
+export async function listPartyRequests(status = "pending") {
+  const res = await fetch(`/api/parties/requests?status=${encodeURIComponent(status)}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to load party requests");
+  return await res.json();
+}
+
+export async function approvePartyRequest(id) {
+  const res = await fetch(`/api/parties/requests/${id}/approve`, {
+    method: "POST",
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    const msg = await res.json().catch(() => ({}));
+    throw new Error(msg.error || "Approve failed");
+  }
+
+  return await res.json();
+}
+
+export async function rejectPartyRequest(id) {
+  const res = await fetch(`/api/parties/requests/${id}/reject`, {
+    method: "POST",
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    const msg = await res.json().catch(() => ({}));
+    throw new Error(msg.error || "Reject failed");
+  }
+
+  return await res.json();
+}
+
+export async function deleteParty(id) {
+  const res = await fetch(`/api/parties/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    const msg = await res.json().catch(() => ({}));
+    throw new Error(msg.error || "Remove failed");
+  }
+
+  return await res.json();
+}
+
+export async function register({ username, password, requested_rank, message }) {
+  const res = await fetch("/api/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ username, password, requested_rank, message }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Register failed");
+  return data; // { user, requested_admin }
+}
+
+export async function listMembers() {
+  const res = await fetch("/api/members", { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to load members");
+  return await res.json();
+}
+
+export async function getMyRankRequest() {
+  const res = await fetch("/api/members/rank-requests/me", { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to load your rank request");
+  return await res.json();
+}
+
+export async function listRankRequests(status = "pending") {
+  const res = await fetch(`/api/members/rank-requests?status=${encodeURIComponent(status)}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to load rank requests");
+  return await res.json();
+}
+
+export async function approveRankRequest(id) {
+  const res = await fetch(`/api/members/rank-requests/${id}/approve`, {
+    method: "POST",
+    credentials: "include",
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Approve failed");
+  return data;
+}
+
+export async function rejectRankRequest(id) {
+  const res = await fetch(`/api/members/rank-requests/${id}/reject`, {
+    method: "POST",
+    credentials: "include",
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Reject failed");
+  return data;
+}
+
+

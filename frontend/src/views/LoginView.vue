@@ -3,7 +3,7 @@
     <v-row align="center" justify="center">
       <v-col cols="12" sm="8" md="5">
         <v-card rounded="xl" elevation="1" class="pa-6">
-          <div class="text-h5 font-weight-bold mb-2">Admin Login</div>
+          <div class="text-h5 font-weight-bold mb-2">Login</div>
 
           <v-alert v-if="error" type="error" variant="tonal" class="mb-4">
             {{ error }}
@@ -34,6 +34,9 @@
 
           <v-btn color="primary" variant="flat" block :loading="loading" @click="doLogin">
             Log in
+          </v-btn>
+          <v-btn variant="text" block class="mt-2" to="/register">
+            Create an account
           </v-btn>
         </v-card>
       </v-col>

@@ -5,6 +5,56 @@ import { requireLogin } from "../middleware/auth.js";
 
 const router = express.Router();
 
+router.post("/register", async (req, res) => {
+  const db = getDb();
+  const { username, password, requested_rank, message } = req.body ?? {};
+
+  const name = String(username ?? "").trim();
+  const pass = String(password ?? "");
+
+  if (name.length < 3) return res.status(400).json({ error: "Username must be at least 3 characters" });
+  if (pass.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
+
+  // Only allow requesting admin at signup (simple + safe).
+  // (You can expand later if you want.)
+  const wantsAdmin = requested_rank === "admin";
+
+  try {
+    const taken = await db.get("SELECT id FROM users WHERE username = ?", name);
+    if (taken) return res.status(409).json({ error: "Username already taken" });
+
+    const hash = await bcrypt.hash(pass, 12);
+
+    // Create user as normal member
+    const result = await db.run(
+      `INSERT INTO users (username, password_hash, role, guild_rank)
+       VALUES (?, ?, 'member', 'member')`,
+      name,
+      hash
+    );
+
+    const user = { id: result.lastID, username: name, guild_rank: "member" };
+
+    // Optional admin request
+    if (wantsAdmin) {
+      await db.run(
+        `INSERT INTO guild_rank_requests (user_id, requested_rank, message)
+         VALUES (?, ?, ?)`,
+        user.id,
+        "admin",
+        typeof message === "string" ? message.trim() : null
+      );
+    }
+
+    // Log them in immediately
+    req.session.user = user;
+
+    return res.status(201).json({ user, requested_admin: wantsAdmin });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message || "Failed to register" });
+  }
+});
+
 router.post("/login", async (req, res) => {
   const db = getDb();
   const { username, password } = req.body ?? {};

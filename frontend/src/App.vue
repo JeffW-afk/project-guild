@@ -33,10 +33,22 @@
           :disabled="!user"
         />
         <v-list-item
+          title="My Party"
+          prepend-icon="mdi-account-star"
+          to="/my-party"
+          :disabled="!user"
+        />
+        <v-list-item
           title="Parties"
           prepend-icon="mdi-sword-cross"
           to="/parties"
           :disabled="!user"
+        />
+        <v-list-item
+          v-if="user && ['admin','guild_master','founder'].includes(user.guild_rank)"
+          title="Party Requests"
+          prepend-icon="mdi-shield-account"
+          to="/admin/party-requests"
         />
       </v-list>
 

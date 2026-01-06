@@ -43,6 +43,77 @@ async function createTables() {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY(user_id) REFERENCES users(id)
     );
+
+    -- Parties ("squad" system)
+    CREATE TABLE IF NOT EXISTS parties (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT,
+      created_by INTEGER NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY(created_by) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS party_roles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      party_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      permissions TEXT NOT NULL DEFAULT '{}',
+      UNIQUE(party_id, name),
+      FOREIGN KEY(party_id) REFERENCES parties(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS party_members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      party_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      role_id INTEGER NOT NULL,
+      joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY(party_id) REFERENCES parties(id),
+      FOREIGN KEY(user_id) REFERENCES users(id),
+      FOREIGN KEY(role_id) REFERENCES party_roles(id)
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_party_members_user ON party_members(user_id);
+    CREATE INDEX IF NOT EXISTS idx_party_members_party ON party_members(party_id);
+
+    -- Member requests to create a party (admin approves)
+    CREATE TABLE IF NOT EXISTS party_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      party_name TEXT NOT NULL,
+      message TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      reviewed_by INTEGER,
+      reviewed_at TEXT,
+      FOREIGN KEY(user_id) REFERENCES users(id),
+      FOREIGN KEY(reviewed_by) REFERENCES users(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_party_requests_status ON party_requests(status);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_party_requests_pending_user
+      ON party_requests(user_id) WHERE status = 'pending';
+
+    
+      -- Requests to become a higher guild rank (admin approval)
+    CREATE TABLE IF NOT EXISTS guild_rank_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      requested_rank TEXT NOT NULL,
+      message TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      reviewed_by INTEGER,
+      reviewed_at TEXT,
+      FOREIGN KEY(user_id) REFERENCES users(id),
+      FOREIGN KEY(reviewed_by) REFERENCES users(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_guild_rank_requests_status ON guild_rank_requests(status);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_guild_rank_requests_pending_user
+      ON guild_rank_requests(user_id) WHERE status = 'pending';
+
   `);
 
   // for older DBs that existed before guild_rank
@@ -50,6 +121,12 @@ async function createTables() {
     "users",
     "guild_rank",
     "ALTER TABLE users ADD COLUMN guild_rank TEXT NOT NULL DEFAULT 'member'"
+  );
+  // Parties: allow "removal" without deleting rows (archive)
+  await ensureColumn(
+    "parties",
+    "is_active",
+    "ALTER TABLE parties ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1"
   );
 }
 

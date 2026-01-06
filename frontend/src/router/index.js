@@ -5,6 +5,9 @@ import AnnouncementsView from "../views/AnnouncementsView.vue";
 import MembersView from "../views/MembersView.vue";
 import PartiesView from "../views/PartiesView.vue";
 import ProfileView from "../views/ProfileView.vue";
+import MyPartyView from "../views/MyPartyView.vue";
+import AdminPartyRequestsView from "../views/AdminPartyRequestsView.vue";
+import RegisterView from "../views/RegisterView.vue";
 
 import { authMe } from "../services/api";
 
@@ -21,6 +24,9 @@ const router = createRouter({
     { path: "/members", component: MembersView, meta: { requiresAuth: true } },
     { path: "/parties", component: PartiesView, meta: { requiresAuth: true } },
     { path: "/profile", component: ProfileView, meta: { requiresAuth: true } },
+    { path: "/my-party", component: MyPartyView, meta: { requiresAuth: true } },
+    { path: "/admin/party-requests", component: AdminPartyRequestsView, meta: { requiresAuth: true } },
+    { path: "/register", component: RegisterView },
 
     // fallback (optional)
     { path: "/:pathMatch(.*)*", redirect: "/announcements" },

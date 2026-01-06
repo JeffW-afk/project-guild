@@ -4,6 +4,8 @@ import sessionConfig from "./config/session.js";
 
 import authRoutes from "./routes/auth.js";
 import announcementRoutes from "./routes/announcements.js";
+import partyRoutes from "./routes/parties.js";
+import membersRoutes from "./routes/members.js";
 
 const app = express();
 
@@ -13,6 +15,8 @@ app.use(session(sessionConfig));
 // routes
 app.use("/api/auth", authRoutes);
 app.use("/api/announcements", announcementRoutes);
+app.use("/api/parties", partyRoutes);
+app.use("/api/members", membersRoutes);
 
 // simple 404
 app.use((req, res) => {
