@@ -1,7 +1,7 @@
 <template>
-  <v-container class="py-6" style="max-width: 1000px;">
+  <v-container v-if="myParty?.party" class="py-6" style="max-width: 1000px;">
     <div class="d-flex align-center justify-space-between mb-4">
-      <div class="text-h5 font-weight-bold">My Party</div>
+      <div class="text-h5 font-weight-bold">ᛝ{{ myParty.party.name }}ᛝ</div>
       <v-btn variant="text" :loading="loading" @click="load">Refresh</v-btn>
     </div>
 
@@ -14,7 +14,7 @@
       <v-card-text>
         <div v-if="myParty?.party">
           <div class="text-subtitle-1 font-weight-medium">
-            ✅ You’re in <strong>{{ myParty.party.name }}</strong>
+            ⤷ You’re in <strong>{{ myParty.party.name }}</strong>
           </div>
           <div class="text-body-2 text-medium-emphasis mt-1">
             Role: {{ myParty.party.role }}

@@ -257,8 +257,9 @@ export async function register({ username, password, requested_rank, message }) 
 
 export async function listMembers() {
   const res = await fetch("/api/members", { credentials: "include" });
-  if (!res.ok) throw new Error("Failed to load members");
-  return await res.json();
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Failed to load members");
+  return data; // array of {id, username, guild_rank, party: {id,name} | null}
 }
 
 export async function getMyRankRequest() {

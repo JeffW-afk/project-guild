@@ -17,7 +17,7 @@ router.get("/", requireLogin, async (req, res) => {
       p.name AS party_name
     FROM users u
     LEFT JOIN party_members pm ON pm.user_id = u.id
-    LEFT JOIN parties p ON p.id = pm.party_id
+    LEFT JOIN parties p ON p.id = pm.party_id AND p.is_active = 1
     ORDER BY u.id DESC
   `);
 
