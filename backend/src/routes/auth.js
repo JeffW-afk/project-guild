@@ -44,6 +44,28 @@ router.post("/register", async (req, res) => {
         "admin",
         typeof message === "string" ? message.trim() : null
       );
+
+      // Notify guild leaders via mailbox
+      const leaders = await db.all(
+        "SELECT id, username FROM users WHERE guild_rank IN ('admin','guild_master','founder')"
+      );
+
+      const note = typeof message === "string" && message.trim().length
+        ? `\n\nMessage from ${name}:\n${message.trim()}`
+        : "";
+
+      const subject = `Admin request: ${name}`;
+      const body = `${name} requested to become an admin.${note}\n\nReview it in the Rank Requests panel.`;
+
+      for (const l of leaders) {
+        await db.run(
+          `INSERT INTO mail_messages (sender_id, recipient_id, subject, body)
+           VALUES (NULL, ?, ?, ?)`,
+          l.id,
+          subject,
+          body
+        );
+      }
     }
 
     // Log them in immediately

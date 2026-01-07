@@ -103,6 +103,16 @@ router.post(
         id
       );
 
+      // Notify requester via mailbox
+      await db.run(
+        `INSERT INTO mail_messages (sender_id, recipient_id, subject, body)
+         VALUES (?, ?, ?, ?)`,
+        req.session.user.id,
+        rr.user_id,
+        "Admin request approved",
+        `Your request to become ${rr.requested_rank} was approved.`
+      );
+
       // If the user is currently logged in, their session won't auto-update.
       // They'll see the new rank next login (or you can add a /auth/refresh endpoint later).
 
@@ -134,6 +144,16 @@ router.post(
        WHERE id = ?`,
       req.session.user.id,
       id
+    );
+
+    // Notify requester via mailbox
+    await db.run(
+      `INSERT INTO mail_messages (sender_id, recipient_id, subject, body)
+       VALUES (?, ?, ?, ?)`,
+      req.session.user.id,
+      rr.user_id,
+      "Admin request rejected",
+      `Your request to become ${rr.requested_rank} was rejected.`
     );
 
     res.json({ ok: true });

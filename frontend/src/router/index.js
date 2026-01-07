@@ -7,7 +7,9 @@ import PartiesView from "../views/PartiesView.vue";
 import ProfileView from "../views/ProfileView.vue";
 import MyPartyView from "../views/MyPartyView.vue";
 import AdminPartyRequestsView from "../views/AdminPartyRequestsView.vue";
+import AdminRankRequestsView from "../views/AdminRankRequestsView.vue";
 import RegisterView from "../views/RegisterView.vue";
+import MailboxView from "../views/MailboxView.vue";
 
 import { authMe } from "../services/api";
 
@@ -26,6 +28,8 @@ const router = createRouter({
     { path: "/profile", component: ProfileView, meta: { requiresAuth: true } },
     { path: "/my-party", component: MyPartyView, meta: { requiresAuth: true } },
     { path: "/admin/party-requests", component: AdminPartyRequestsView, meta: { requiresAuth: true } },
+    { path: "/admin/rank-requests", component: AdminRankRequestsView, meta: { requiresAuth: true } },
+    { path: "/mailbox", component: MailboxView, meta: { requiresAuth: true } },
     { path: "/register", component: RegisterView },
 
     // fallback (optional)

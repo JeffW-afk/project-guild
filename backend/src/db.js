@@ -114,6 +114,23 @@ async function createTables() {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_guild_rank_requests_pending_user
       ON guild_rank_requests(user_id) WHERE status = 'pending';
 
+    -- Simple mailbox (system + user messages)
+    CREATE TABLE IF NOT EXISTS mail_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sender_id INTEGER,
+      recipient_id INTEGER NOT NULL,
+      subject TEXT NOT NULL,
+      body TEXT NOT NULL,
+      is_read INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY(sender_id) REFERENCES users(id),
+      FOREIGN KEY(recipient_id) REFERENCES users(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_mail_recipient ON mail_messages(recipient_id);
+    CREATE INDEX IF NOT EXISTS idx_mail_sender ON mail_messages(sender_id);
+    CREATE INDEX IF NOT EXISTS idx_mail_recipient_unread ON mail_messages(recipient_id, is_read);
+
   `);
 
   // for older DBs that existed before guild_rank

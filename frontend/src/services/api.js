@@ -296,4 +296,62 @@ export async function rejectRankRequest(id) {
   return data;
 }
 
+// ---------------------------
+// Mailbox
+// ---------------------------
+
+export async function getUnreadMailCount() {
+  const res = await fetch("/api/mail/unread-count", { credentials: "include" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Failed to load unread count");
+  return data; // { unread }
+}
+
+export async function listInbox({ limit = 50, unread = false } = {}) {
+  const url = new URL("/api/mail/inbox", window.location.origin);
+  url.searchParams.set("limit", String(limit));
+  if (unread) url.searchParams.set("unread", "1");
+
+  const res = await fetch(url.toString().replace(window.location.origin, ""), {
+    credentials: "include",
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Failed to load inbox");
+  return data;
+}
+
+export async function listSent({ limit = 50 } = {}) {
+  const url = new URL("/api/mail/sent", window.location.origin);
+  url.searchParams.set("limit", String(limit));
+
+  const res = await fetch(url.toString().replace(window.location.origin, ""), {
+    credentials: "include",
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Failed to load sent");
+  return data;
+}
+
+export async function markMailRead(id) {
+  const res = await fetch(`/api/mail/${id}/read`, {
+    method: "POST",
+    credentials: "include",
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Failed to mark read");
+  return data;
+}
+
+export async function sendMail({ toUsername, subject, body }) {
+  const res = await fetch("/api/mail/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ toUsername, subject, body }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Failed to send message");
+  return data;
+}
+
 
