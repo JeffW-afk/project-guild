@@ -157,6 +157,57 @@ export async function resetPassword({ username, code, newPassword }) {
 // ---------------------------
 // Parties
 // ---------------------------
+export async function getMyPartyJoinRequest() {
+  const res = await fetch("/api/parties/join-requests/me", { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to load your join request");
+  return await res.json(); // { request: ... or null }
+}
+
+export async function requestJoinParty(partyId, { message } = {}) {
+  const res = await fetch(`/api/parties/${partyId}/join-requests`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ message }),
+  });
+
+  if (!res.ok) {
+    const msg = await res.json().catch(() => ({}));
+    throw new Error(msg.error || "Join request failed");
+  }
+
+  return await res.json();
+}
+
+export async function listJoinRequests(status = "pending") {
+  const res = await fetch(`/api/parties/join-requests?status=${encodeURIComponent(status)}`, {
+    credentials: "include",
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Failed to load join requests");
+  return data; // array
+}
+
+export async function approveJoinRequest(id) {
+  const res = await fetch(`/api/parties/join-requests/${id}/approve`, {
+    method: "POST",
+    credentials: "include",
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Approve failed");
+  return data;
+}
+
+export async function rejectJoinRequest(id) {
+  const res = await fetch(`/api/parties/join-requests/${id}/reject`, {
+    method: "POST",
+    credentials: "include",
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Reject failed");
+  return data;
+}
+
 
 export async function listParties() {
   const res = await fetch("/api/parties", { credentials: "include" });

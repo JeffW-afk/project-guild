@@ -1,7 +1,9 @@
 <template>
-  <v-container v-if="myParty?.party" class="py-6" style="max-width: 1000px;">
+  <v-container class="py-6" style="max-width: 1000px;">
     <div class="d-flex align-center justify-space-between mb-4">
-      <div class="text-h5 font-weight-bold">ᛝ{{ myParty.party.name }}ᛝ</div>
+      <div class="text-h5 font-weight-bold">
+        {{ myParty?.party ? `ᛝ${myParty.party.name}ᛝ` : "My Party" }}
+      </div>
       <v-btn variant="text" :loading="loading" @click="load">Refresh</v-btn>
     </div>
 
@@ -70,6 +72,51 @@
         </div>
       </v-card-text>
     </v-card>
+
+    <v-card v-if="myParty?.party && myParty.party.role === 'captain'" rounded="xl" elevation="1" class="mt-6">
+      <v-card-title>Join requests</v-card-title>
+      <v-card-text>
+        <v-alert v-if="joinError" type="error" variant="tonal" class="mb-4">
+          {{ joinError }}
+        </v-alert>
+
+        <v-alert v-if="joinRequests.length === 0" type="info" variant="tonal">
+          No pending join requests.
+        </v-alert>
+
+        <v-list v-else density="comfortable">
+          <v-list-item
+            v-for="r in joinRequests"
+            :key="r.id"
+            :title="r.username"
+            :subtitle="r.message || '—'"
+          >
+            <template #append>
+              <div class="d-flex align-center ga-2">
+                <v-btn
+                  size="small"
+                  color="success"
+                  variant="tonal"
+                  :loading="actingId === r.id"
+                  @click="approve(r.id)"
+                >
+                  Approve
+                </v-btn>
+                <v-btn
+                  size="small"
+                  color="error"
+                  variant="tonal"
+                  :loading="actingId === r.id"
+                  @click="reject(r.id)"
+                >
+                  Reject
+                </v-btn>
+              </div>
+            </template>
+          </v-list-item>
+        </v-list>
+      </v-card-text>
+    </v-card>
   </v-container>
 </template>
 
@@ -79,6 +126,9 @@ import {
   getMyParty,
   getMyPartyRequest,
   requestPartyCreation,
+  listJoinRequests,
+  approveJoinRequest,
+  rejectJoinRequest,
 } from "../services/api";
 
 const loading = ref(false);
@@ -86,6 +136,10 @@ const error = ref("");
 
 const myParty = ref(null);   // { party: ...|null }
 const myRequest = ref(null); // { request: ...|null }
+
+const joinRequests = ref([]);
+const joinError = ref("");
+const actingId = ref(null);
 
 const draft = ref({ party_name: "", message: "" });
 const requesting = ref(false);
@@ -100,6 +154,12 @@ async function load() {
   try {
     myParty.value = await getMyParty();
     myRequest.value = await getMyPartyRequest();
+
+    joinRequests.value = [];
+    joinError.value = "";
+    if (myParty.value?.party && myParty.value.party.role === 'captain') {
+      joinRequests.value = await listJoinRequests('pending');
+    }
   } catch (e) {
     error.value = e?.message || "Failed to load party status.";
   } finally {
@@ -127,6 +187,45 @@ async function submitRequest() {
     error.value = e?.message || "Request failed";
   } finally {
     requesting.value = false;
+  }
+}
+
+
+
+async function refreshJoinRequests() {
+  joinError.value = "";
+  try {
+    joinRequests.value = await listJoinRequests("pending");
+  } catch (e) {
+    joinError.value = e?.message || "Failed to load join requests.";
+  }
+}
+
+async function approve(id) {
+  if (actingId.value) return;
+  actingId.value = id;
+  joinError.value = "";
+  try {
+    await approveJoinRequest(id);
+    await refreshJoinRequests();
+  } catch (e) {
+    joinError.value = e?.message || "Approve failed.";
+  } finally {
+    actingId.value = null;
+  }
+}
+
+async function reject(id) {
+  if (actingId.value) return;
+  actingId.value = id;
+  joinError.value = "";
+  try {
+    await rejectJoinRequest(id);
+    await refreshJoinRequests();
+  } catch (e) {
+    joinError.value = e?.message || "Reject failed.";
+  } finally {
+    actingId.value = null;
   }
 }
 

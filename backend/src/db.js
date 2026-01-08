@@ -130,7 +130,26 @@ async function createTables() {
     CREATE INDEX IF NOT EXISTS idx_mail_recipient ON mail_messages(recipient_id);
     CREATE INDEX IF NOT EXISTS idx_mail_sender ON mail_messages(sender_id);
     CREATE INDEX IF NOT EXISTS idx_mail_recipient_unread ON mail_messages(recipient_id, is_read);
+        
+    -- Member requests to join a party (leader approves)
+    CREATE TABLE IF NOT EXISTS party_join_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      party_id INTEGER NOT NULL,
+      message TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      reviewed_by INTEGER,
+      reviewed_at TEXT,
+      FOREIGN KEY(user_id) REFERENCES users(id),
+      FOREIGN KEY(party_id) REFERENCES parties(id),
+      FOREIGN KEY(reviewed_by) REFERENCES users(id)
+    );
 
+    CREATE INDEX IF NOT EXISTS idx_party_join_requests_status ON party_join_requests(status);
+    CREATE INDEX IF NOT EXISTS idx_party_join_requests_party ON party_join_requests(party_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_party_join_requests_pending_user
+      ON party_join_requests(user_id) WHERE status = 'pending';
   `);
 
   // for older DBs that existed before guild_rank
